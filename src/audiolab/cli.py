@@ -59,12 +59,17 @@ def cmd_analyze(args: argparse.Namespace) -> int:
             "quality": args.quality,
             "clusters": args.clusters,
             "skip_tagging": args.no_tagging,
+            "skip_asr": args.skip_asr,
+            "asr_language": args.asr_language,
+            "asr_model_dir": args.asr_model_dir,
             "force": args.force,
         },
         progress=progress,
     )
     print()
     print(json.dumps(result.timeline.summary, ensure_ascii=False, indent=2))
+    if result.transcript is not None:
+        print(f"转写: {len(result.transcript.segments)} 段 / {len(result.transcript.text)} 字")
     print(f"输出: {out_dir}")
     print(f"报告: {out_dir / 'report.html'}")
     return 0
@@ -143,6 +148,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--quality", default="balanced", choices=["fast", "balanced", "hq"])
     p.add_argument("--clusters", type=int)
     p.add_argument("--no-tagging", action="store_true")
+    p.add_argument("--skip-asr", action="store_true", help="跳过 SenseVoice 语音转写")
+    p.add_argument("--asr-language", default="auto", choices=["auto", "zh", "en", "ja", "ko", "yue"])
+    p.add_argument("--asr-model-dir", default="", help="SenseVoice ONNX 模型目录（含 model.int8.onnx + tokens.txt）")
     p.add_argument("--force", action="store_true")
     p.set_defaults(func=cmd_analyze)
 

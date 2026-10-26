@@ -39,6 +39,7 @@ KIND_NAMES = {
     "processed": "处理结果",
     "preview": "预览",
     "report": "报告",
+    "transcript": "转写文本",
 }
 
 _CSS = """
@@ -375,6 +376,7 @@ def build(result: AnalysisResult, out_html: str | Path, project_title: str = "")
     media_info = result.media
     timeline = result.timeline
     timbre = result.timbre
+    transcript = result.transcript
     title = project_title or (media_info.filename if media_info else "音频分析报告")
     duration = float(timeline.duration or media_info.duration or 0.0)
     peaks = _load_peaks(report_dir)
@@ -458,6 +460,42 @@ def build(result: AnalysisResult, out_html: str | Path, project_title: str = "")
 
     scatter = _scatter_svg(timbre.clusters, timbre.points)
 
+    # Transcript.
+    transcript_rows: list[str] = []
+    transcript_text = ""
+    if transcript is not None:
+        transcript_text = transcript.text or ""
+        for index, seg in enumerate(transcript.segments[:row_limit]):
+            transcript_rows.append(
+                "<tr>"
+                f"<td>{index + 1}</td>"
+                f"<td>{_escape(_fmt_time(seg.start))}</td>"
+                f"<td>{_escape(_fmt_time(seg.stop))}</td>"
+                f"<td>{_escape(seg.text)}</td>"
+                f"<td>{_escape(seg.language)}</td>"
+                f"<td>{_escape(seg.emotion)}</td>"
+                f"<td>{_escape(seg.event)}</td>"
+                "</tr>"
+            )
+    if transcript_rows:
+        transcript_section = f"""
+<h2>语音转写</h2>
+<div class="panel">
+  <div class="sub">SenseVoice · {_escape(transcript.language or "auto")} · {len(transcript.segments)} 段 · 完整文本</div>
+  <p style="line-height:1.9;white-space:pre-wrap;margin:10px 0 0">{_escape(transcript_text)}</p>
+</div>
+<div class="tablewrap" style="margin-top:12px">
+<table>
+<thead><tr><th>#</th><th>开始</th><th>结束</th><th>文本</th><th>语言</th><th>情绪</th><th>事件</th></tr></thead>
+<tbody>{"".join(transcript_rows)}</tbody>
+</table>
+</div>
+"""
+    elif transcript is not None:
+        transcript_section = '<h2>语音转写</h2><div class="empty">未识别到可转写的人声文本</div>'
+    else:
+        transcript_section = '<h2>语音转写</h2><div class="empty">本次分析未启用 SenseVoice 转写</div>'
+
     # Artifacts + warnings + models.
     artifact_rows: list[str] = []
     for artifact in result.artifacts:
@@ -479,6 +517,10 @@ def build(result: AnalysisResult, out_html: str | Path, project_title: str = "")
         ("分离/分析", "BS-Roformer 分离 + Silero VAD + AST + 音色编码器"),
         ("音色后端", "音色编码器" if timbre.backend == "colorsplitter" else "MFCC（回退）"),
         ("音色簇代理", "后端不可用时会自动回退 MFCC 嵌入"),
+        (
+            "语音转写",
+            f"SenseVoice · {len(transcript.segments)} 段 · {transcript.elapsed:.1f}s" if transcript else "未启用",
+        ),
         ("生成时间", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
     ]
     if meta:
@@ -518,6 +560,7 @@ def build(result: AnalysisResult, out_html: str | Path, project_title: str = "")
             {"index": cluster.index, "label": cluster.label, "color": cluster.color, "n_clips": cluster.n_clips}
             for cluster in timbre.clusters
         ],
+        "transcript": transcript.model_dump() if transcript else None,
     }
     payload_json = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
 
@@ -553,7 +596,7 @@ def build(result: AnalysisResult, out_html: str | Path, project_title: str = "")
       {media_chip}
     </div>
   </div>
-  <div class="chips">{ "".join(f'<span class="chip">{_escape(name)} <b>{value}</b></span>' for name, value in [("分段", len(timeline.segments)), ("音色簇", cluster_count), ("警告", len([w for w in warnings if w]))]) }</div>
+  <div class="chips">{ "".join(f'<span class="chip">{_escape(name)} <b>{value}</b></span>' for name, value in [("分段", len(timeline.segments)), ("音色簇", cluster_count), ("转写", len(transcript.segments) if transcript else 0), ("警告", len([w for w in warnings if w]))]) }</div>
 </header>
 
 <h2>概览</h2>
@@ -582,6 +625,8 @@ def build(result: AnalysisResult, out_html: str | Path, project_title: str = "")
 <tbody>{ "".join(rows) }</tbody>
 </table>
 </div>
+
+{transcript_section}
 
 <h2>音色分析</h2>
 <div class="grid2">

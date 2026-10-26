@@ -1,4 +1,4 @@
-﻿# AudioLab Studio setup for Windows
+# AudioLab Studio setup for Windows
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File setup.ps1
 #   powershell -ExecutionPolicy Bypass -File setup.ps1 -ComfySite "D:\ComfyUI\...\site-packages"
@@ -69,7 +69,8 @@ if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host "Downloading recommended models (MDX HQ4 + timbre + VAD, ~80MB)..."
-Write-Host "BS-Roformer / AST can be downloaded later in the Models page." -ForegroundColor Yellow
+Write-Host "SenseVoice / BS-Roformer / AST can be downloaded later in the Models page." -ForegroundColor Yellow
+Write-Host "Existing local SenseVoice is auto-detected (no copy needed)." -ForegroundColor Yellow
 & $Py scripts\fetch_models.py --recommended
 
 Write-Host "Running doctor..."

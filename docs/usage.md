@@ -59,6 +59,14 @@ run_workbench.bat
 - 重命名簇、合并簇；导出簇文件夹。
 - 标签是「音高 × 明亮度 × 质感」的启发式描述；F0 仅作参考，不武断判定性别。
 
+## 转写
+
+- 分析完成后打开「转写」页；SenseVoice 会对检测到的人声/混合分段逐段转写。
+- 显示全文、时间、语言、情绪、事件；支持复制全文，导出 SRT/VTT/TXT。
+- 关闭转写：分析参数里取消「语音转写」，或设置 `asr_enabled=false`。
+- 模型缺失时只跳过转写，不影响其他结果；模型路径在设置里可改，或放 `models/sensevoice/`。
+- 本机已有 DSH SenseVoice 模型会自动复用，不需要复制。
+
 ## 处理
 
 | 预设 | 目标 |
@@ -82,6 +90,7 @@ run_workbench.bat
 - 分离：`lainlives/audio-separator-models`
 - AST：Hugging Face，可设 `HF_ENDPOINT=https://hf-mirror.com`
 - 音色/VAD：GitHub / jsDelivr
+- 转写：SenseVoice ONNX（`asr.sensevoice`，约 239MB；本机已有会自动复用）
 
 命令行预下载：
 
@@ -91,7 +100,7 @@ run_workbench.bat
 
 ## 设置与诊断
 
-- 设置：工作区/模型目录、设备（auto/cuda/cpu）、HF 镜像、预览质量、主题、语言。
+- 设置：工作区/模型目录、设备（auto/cuda/cpu）、HF 镜像、预览质量、主题、语言、ASR 开关/语言/模型目录。
 - 诊断：ffmpeg、CUDA、模型、磁盘、权限；可复制诊断信息。
 - 日志：右侧任务面板或 `workspace/logs/`。
 

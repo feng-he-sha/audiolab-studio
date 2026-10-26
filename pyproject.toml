@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "audiolab"
-version = "0.1.0"
+version = "0.1.1"
 description = "AudioLab Studio - local audio voice/music workbench (vocal/BGM classification, timbre clustering, ffmpeg processing)"
 readme = "README.md"
 license = { text = "MIT" }
@@ -34,6 +34,7 @@ dependencies = [
   "transformers==5.20.2",
   "huggingface-hub>=1.31,<2",
   "silero-vad==6.2.3",
+  "sherpa-onnx==2.0.0",
 ]
 
 [project.optional-dependencies]

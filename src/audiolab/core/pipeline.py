@@ -64,6 +64,7 @@ QUALITY_PRESETS: dict[str, dict[str, Any]] = {
         "skip_tagging": True,
         "timbre_backend": "mfcc",
         "overlap": None,
+        "skip_asr": False,
         "description": "MDX 分离 + 能量融合 + MFCC 音色，最快出结果",
     },
     "balanced": {
@@ -71,13 +72,15 @@ QUALITY_PRESETS: dict[str, dict[str, Any]] = {
         "skip_tagging": False,
         "timbre_backend": "colorsplitter",
         "overlap": None,
-        "description": "BS-Roformer 分离 + AST 标签 + ColorSplitter 音色",
+        "skip_asr": False,
+        "description": "BS-Roformer 分离 + AST 标签 + ColorSplitter 音色 + SenseVoice 转写",
     },
     "hq": {
         "label": "高质量",
         "skip_tagging": False,
         "timbre_backend": "colorsplitter",
         "overlap": 16.0,
+        "skip_asr": False,
         "description": "与均衡相同，但分离重叠窗口更高（更慢更好）",
     },
 }
@@ -184,6 +187,10 @@ def _normalize_params(params: dict[str, Any] | None, settings: config.Settings) 
         "separation_fallback": str(pick("separation_fallback", settings.separation_fallback)),
         "separation_overlap": quality_cfg["overlap"] if raw.get("separation_overlap") is None else raw.get("separation_overlap"),
         "skip_tagging": bool(pick("skip_tagging", quality_cfg["skip_tagging"])),
+        "skip_asr": bool(pick("skip_asr", quality_cfg.get("skip_asr", False) or not settings.asr_enabled)),
+        "asr_language": str(pick("asr_language", settings.asr_language or "auto")),
+        "asr_model_dir": str(pick("asr_model_dir", settings.asr_model_dir or "")),
+        "asr_max_segments": int(pick("asr_max_segments", settings.asr_max_segments or 200)),
         "timbre_backend": str(pick("timbre_backend", quality_cfg["timbre_backend"] or settings.timbre_backend)),
         "clusters": clusters,
         "timbre_threshold": max(0.05, min(0.95, threshold)),
@@ -568,6 +575,36 @@ def analyze(
     _write_json(out_dir / "timbre.json", timbre_result.model_dump())
     lap("timbre")
 
+    # ---- Stage: ASR (SenseVoice) ------------------------------------------
+    transcript_result = None
+    if params_norm["skip_asr"]:
+        _emit(progress, "asr", 72, "已跳过语音转写")
+    else:
+        _emit(progress, "asr", 70, "语音转写（SenseVoice）")
+        try:
+            from audiolab.core import asr
+
+            if not asr.available(params_norm["asr_model_dir"]):
+                warnings.append(
+                    "SenseVoice 模型未找到，已跳过转写；请把 model.int8.onnx + tokens.txt "
+                    "放到 models/sensevoice，或在设置中填写 ASR 模型目录。"
+                )
+            else:
+                transcript_result = asr.transcribe(
+                    vocals_48,
+                    timeline,
+                    model_dir=params_norm["asr_model_dir"] or None,
+                    language=str(params_norm["asr_language"]),
+                    max_segments=int(params_norm["asr_max_segments"]),
+                    progress=progress,
+                )
+                warnings.extend(transcript_result.warnings)
+                _write_json(out_dir / "transcript.json", transcript_result.model_dump())
+                _emit(progress, "asr", 79, f"转写完成：{len(transcript_result.segments)} 段")
+        except Exception as exc:  # ASR must never block the rest of the pipeline
+            warnings.append(f"语音转写失败，已跳过：{exc}")
+    lap("asr")
+
     # ---- Stage: previews / peaks ------------------------------------------
     _emit(progress, "preview", 84, "生成预览与波形峰值")
     preview_sr = int(settings_obj.preview_quality or 32) * 1000
@@ -626,12 +663,15 @@ def analyze(
     for name, path in preview_paths.items():
         mime = "audio/mp4" if path.suffix.lower() in {".m4a", ".mp4", ".aac"} else "audio/wav"
         add_artifact(f"preview_{name}", "preview", f"{name} 预览", path, mime)
+    if transcript_result is not None:
+        add_artifact("transcript", "transcript", "转写文本", out_dir / "transcript.json", "application/json")
 
     result = AnalysisResult(
         project_id=project_id,
         media=media_info,
         timeline=timeline,
         timbre=timbre_result,
+        transcript=transcript_result,
         artifacts=artifacts,
         report_url=f"/api/projects/{quote(project_id)}/report",
         warnings=_dedupe(warnings),
@@ -650,6 +690,10 @@ def analyze(
         "separation_fallback": str(params_norm["separation_fallback"]),
         "timbre_backend": result.timbre.backend,
         "skip_tagging": bool(params_norm["skip_tagging"]),
+        "skip_asr": bool(params_norm["skip_asr"]),
+        "asr_backend": result.transcript.backend if result.transcript else "",
+        "asr_segments": len(result.transcript.segments) if result.transcript else 0,
+        "asr_language": result.transcript.language if result.transcript else "",
         "frame_hop": hop,
         "elapsed_seconds": round(elapsed_so_far, 3),
         "stages": dict(timings),

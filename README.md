@@ -16,6 +16,7 @@
 | 人声/音乐分类 | 逐段时间轴：纯人声 / 背景音乐 / 人声+音乐 / 静音·音效，附置信度与 AST 标签 |
 | 人声/伴奏分离 | BS-Roformer（默认，GPU，可选下载）或 UVR-MDX-NET Inst HQ 4（快速/兜底），导出 vocals/instrumental |
 | 音色聚类 | ColorSplitter timbre 嵌入 + 余弦层次聚类，输出簇标签、F0/质心/HNR、代表片段 |
+| 语音转写 | SenseVoiceSmall ONNX 本地转写；逐段时间/文本/语言/情绪/事件，全文复制与 SRT/VTT/TXT 导出 |
 | 音频处理 | `douyin`、`podcast`、`movie`（BGM 自动闪避）、`music`、`clean` 五个预设 |
 | 视频回贴 | 处理后的音频可直接 mux 回新 mp4，视频流不重编码 |
 | 手动修正 | 改分段标签、合并/切分片段、重命名/合并音色簇、重新融合阈值 |
@@ -25,6 +26,8 @@
 ## 界面
 
 ![工作台时间轴](web/screenshots/final-timeline.png)
+
+![SenseVoice 语音转写](web/screenshots/real-transcript.png)
 
 更多截图在 `web/screenshots/`（demo-* 为演示数据，real-* 为真实后端）。
 
@@ -58,8 +61,10 @@ powershell -ExecutionPolicy Bypass -File setup.ps1
 2. 如果本机已有 ComfyUI 的 CUDA torch，可通过 `-ComfySite "…\python_embeded\Lib\site-packages"` 或环境变量 `AUDIOLAB_COMFY_SITE` 复用，避免重复下载数 GB；否则安装 `torch==2.14.1+cu130`；
 3. 安装 Python 依赖（默认 Tsinghua PyPI 镜像，可用 `-PipIndex` 改）；
 4. 安装 `audiolab` 包并构建 `web/dist`；
-5. 预下载推荐模型（MDX HQ4 + 音色 + VAD，约 80MB；BS-Roformer/AST 可在模型页按需下载）；
+5. 预下载推荐模型（MDX HQ4 + 音色 + VAD，约 80MB；BS-Roformer/AST/SenseVoice 可在模型页按需下载）；
 6. 执行 `doctor`。
+
+语音转写会自动发现本机 SenseVoice 模型（包括 `~/.dsh/speech-to-text/sensevoice/models/sensevoice-onnx`）；也可以运行 `python scripts\fetch_models.py --model asr.sensevoice` 下载约 239MB 的 ONNX 版本。
 
 启动：
 
@@ -100,6 +105,7 @@ workspace/outputs/<项目名>_<id>/
 ├─ peaks/*.json                波形峰值
 ├─ timeline.json / segments.csv
 ├─ timbre.json
+├─ transcript.json              SenseVoice 全文/分段/语言/情绪/事件
 ├─ timbre/clips/*.wav
 ├─ timbre/cluster_V1/*.wav
 ├─ processed/<preset>.wav|mp3|m4a
@@ -115,6 +121,8 @@ workspace/outputs/<项目名>_<id>/
 python -m audiolab doctor
 python -m audiolab analyze "你的视频.mp4"
 python -m audiolab analyze song.mp3 --quality fast --clusters 2
+python -m audiolab analyze "你的视频.mp4" --asr-language zh
+python -m audiolab analyze "你的视频.mp4" --skip-asr
 python -m audiolab process input.mp4 --preset movie --mux-video
 python -m audiolab models list
 python -m audiolab models fetch
@@ -128,6 +136,7 @@ python -m audiolab models fetch
 | BS-Roformer / UVR-MDX-NET 权重 | 人声/伴奏 | 社区模型，商用前请确认上游 |
 | ColorSplitter timbre-v1 | 音色嵌入 | MIT |
 | Silero VAD | 人声活动 | MIT |
+| SenseVoiceSmall + sherpa-onnx | 语音转写 | MIT / Apache-2.0 |
 | AST AudioSet | 场景标签 | BSD-3-Clause |
 | ffmpeg | 音频处理 | LGPL/GPL（取决于构建） |
 

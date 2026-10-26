@@ -18,6 +18,8 @@ HF_SEPARATOR_REPO = "lainlives/audio-separator-models"
 HF_SEPARATOR_BASE = f"https://huggingface.co/{HF_SEPARATOR_REPO}/resolve/main"
 GITHUB_RAW = "https://raw.githubusercontent.com"
 COLORSPLITTER_COMMIT = "50c9616dbb82f179af0d432f53d5014857e7f9a5"
+SENSEVOICE_REPO = "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17"
+SENSEVOICE_BASE = f"https://huggingface.co/{SENSEVOICE_REPO}/resolve/main"
 
 
 @dataclass
@@ -140,6 +142,30 @@ MODEL_SPECS: list[ModelSpec] = [
         files=[],
         tags=["tagging", "music", "speech", "gpu"],
     ),
+    ModelSpec(
+        id="asr.sensevoice",
+        engine="asr",
+        label="SenseVoiceSmall 语音转写 (ONNX int8)",
+        kind="file",
+        source=SENSEVOICE_BASE,
+        license="MIT (SenseVoice / FunASR)",
+        note="239MB，中/英/日/韩/粤语转写与情绪/事件标签；缺失时跳过转写。本机已有模型可直接复用。",
+        files=[
+            ModelFile(
+                filename="model.int8.onnx",
+                size=239233841,
+                subdir="sensevoice",
+                url=f"{SENSEVOICE_BASE}/model.int8.onnx",
+            ),
+            ModelFile(
+                filename="tokens.txt",
+                size=315894,
+                subdir="sensevoice",
+                url=f"{SENSEVOICE_BASE}/tokens.txt",
+            ),
+        ],
+        tags=["asr", "speech", "subtitle", "cpu", "optional"],
+    ),
 ]
 
 MODEL_BY_ID = {m.id: m for m in MODEL_SPECS}
@@ -195,6 +221,16 @@ ENGINE_SPECS: list[EngineSpec] = [
         capabilities=["timbre", "clustering", "gpu"],
     ),
     EngineSpec(
+        id="asr.sensevoice",
+        kind="asr",
+        label="SenseVoiceSmall",
+        version="2024-07-17 / ONNX int8",
+        license="MIT",
+        description="本地语音转写，输出全文、分段时间、语言、情绪和事件标签。",
+        model_ids=["asr.sensevoice"],
+        capabilities=["transcription", "subtitle", "language_id", "emotion", "event"],
+    ),
+    EngineSpec(
         id="processing.ffmpeg",
         kind="processing",
         label="ffmpeg 处理链",
@@ -222,6 +258,17 @@ def ast_snapshot_dir() -> Path:
 
 def model_status(spec: ModelSpec) -> tuple[str, str]:
     """Return (status, detail_path_or_error)."""
+    if spec.id == "asr.sensevoice":
+        # The user may already have a SenseVoice bundle outside models/ (e.g.
+        # the DSH speech-to-text cache); report it as ready without copying it.
+        try:
+            from audiolab.core import asr
+
+            local = asr.resolve_model_dir()
+            if local is not None:
+                return "ready", str(local)
+        except Exception:
+            pass
     if spec.kind == "hf_snapshot":
         snap = ast_snapshot_dir()
         if snap.exists() and any(snap.glob("snapshots/*/config.json")):

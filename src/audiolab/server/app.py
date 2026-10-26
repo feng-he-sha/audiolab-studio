@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import mimetypes
 import os
 import re
@@ -41,6 +42,7 @@ from audiolab.core.schemas import (
     SettingsModel,
     Timeline,
     TimbreResult,
+    TranscriptResult,
 )
 from audiolab.engines import models as model_downloads
 from audiolab.engines.registry import (
@@ -137,6 +139,9 @@ class SettingsPatch(BaseModel):
     theme: str | None = None
     language: str | None = None
     auto_open_report: bool | None = None
+    asr_enabled: bool | None = None
+    asr_language: str | None = None
+    asr_model_dir: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -334,6 +339,8 @@ def _list_artifacts(project: dict[str, Any]) -> list[Artifact]:
         for file in sorted(processed_dir.iterdir()):
             if file.is_file() and file.suffix.lower() in {".mp3", ".m4a", ".wav", ".flac", ".mp4"}:
                 add(f"processed_{file.stem}", "processed", f"处理结果 · {file.stem}", f"processed/{file.name}")
+    if (out_dir / "transcript.json").exists():
+        add("transcript", "transcript", "转写文本", "transcript.json", "application/json")
     if (out_dir / "report.html").exists():
         add("report", "report", "报告", "report.html", "text/html")
     return items
@@ -374,6 +381,22 @@ def _doctor() -> dict[str, Any]:
         add("transformers", True, f"transformers {transformers.__version__}")
     except Exception as exc:
         add("transformers", False, str(exc), "pip install transformers")
+    try:
+        import sherpa_onnx  # noqa: F401
+        from audiolab.core import asr
+
+        model_dir = asr.resolve_model_dir()
+        if model_dir:
+            add("SenseVoice ASR", True, f"sherpa-onnx {sherpa_onnx.__version__} · {model_dir}")
+        else:
+            add(
+                "SenseVoice ASR",
+                True,
+                f"sherpa-onnx {sherpa_onnx.__version__} · 未找到模型（可选）",
+                "把 model.int8.onnx + tokens.txt 放到 models/sensevoice，或在设置中填写 ASR 模型目录",
+            )
+    except Exception as exc:
+        add("SenseVoice ASR", False, str(exc), "pip install sherpa-onnx")
     add("前端构建", (config.WEB_DIST / "index.html").exists(), str(config.WEB_DIST), "运行 pnpm --dir web build")
     ready = [m for m in refresh_model_rows() if m["status"] == "ready"]
     add(
@@ -591,6 +614,48 @@ def timbre(project_id: str):
     if not project:
         raise HTTPException(404, "项目不存在")
     return _load_timbre_payload(project)
+
+
+def _load_transcript(project: dict[str, Any]) -> TranscriptResult:
+    path = _project_dir(project) / "transcript.json"
+    if not path.exists():
+        return TranscriptResult(warnings=["本次分析未生成转写"])
+    try:
+        return TranscriptResult.model_validate(json.loads(path.read_text(encoding="utf-8")))
+    except Exception as exc:
+        return TranscriptResult(warnings=[f"转写文件读取失败：{exc}"])
+
+
+@app.get("/api/projects/{project_id}/transcript", response_model=TranscriptResult)
+def transcript(project_id: str):
+    project = db.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "项目不存在")
+    return _load_transcript(project)
+
+
+@app.get("/api/projects/{project_id}/transcript/export")
+def transcript_export(project_id: str, format: str = "srt"):
+    project = db.get_project(project_id)
+    if not project:
+        raise HTTPException(404, "项目不存在")
+    fmt = (format or "srt").lower().strip()
+    if fmt not in {"srt", "vtt", "txt"}:
+        raise HTTPException(400, "format 只支持 srt/vtt/txt")
+    from audiolab.core import asr
+
+    result = _load_transcript(project)
+    if fmt == "srt":
+        content = asr.to_srt(result)
+    elif fmt == "vtt":
+        content = asr.to_vtt(result)
+    else:
+        content = asr.to_txt(result)
+    return Response(
+        content=content,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="transcript.{fmt}"'},
+    )
 
 
 @app.get("/api/projects/{project_id}/artifacts")

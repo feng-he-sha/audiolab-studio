@@ -117,6 +117,31 @@ class TimbreResult(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+class TranscriptSegment(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int = 0
+    start: float
+    stop: float
+    text: str = ""
+    language: str = ""
+    emotion: str = ""
+    event: str = ""
+
+
+class TranscriptResult(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    backend: str = "sensevoice"
+    model_dir: str = ""
+    language: str = "auto"
+    text: str = ""
+    segments: list[TranscriptSegment] = Field(default_factory=list)
+    duration: float = 0.0
+    elapsed: float = 0.0
+    warnings: list[str] = Field(default_factory=list)
+
+
 class Artifact(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -157,6 +182,7 @@ class AnalysisResult(BaseModel):
     media: MediaInfo
     timeline: Timeline
     timbre: TimbreResult
+    transcript: TranscriptResult | None = None
     artifacts: list[Artifact] = Field(default_factory=list)
     report_url: str = ""
     warnings: list[str] = Field(default_factory=list)
@@ -237,3 +263,6 @@ class SettingsModel(BaseModel):
     theme: str = "dark"
     language: str = "zh-CN"
     auto_open_report: bool = False
+    asr_enabled: bool = True
+    asr_language: str = "auto"
+    asr_model_dir: str = ""

@@ -23,6 +23,7 @@ import type {
   Settings,
   Timeline,
   TimbreResult,
+  TranscriptResult,
 } from "./types";
 import { createDemoClient, demoEnabled } from "./demo";
 
@@ -162,6 +163,8 @@ const realClient: ApiClient = {
     request<{ artifacts: Artifact[] }>(`/api/projects/${enc(id)}/artifacts`),
   peaks: (id, artifactId) =>
     request<Peaks>(`/api/projects/${enc(id)}/peaks/${enc(artifactId)}`),
+  transcript: (id) =>
+    request<TranscriptResult>(`/api/projects/${enc(id)}/transcript`),
 
   setSegmentLabel: (id, segmentId, userLabel) =>
     request<Timeline>(
@@ -282,6 +285,8 @@ const realClient: ApiClient = {
   reportUrl: (id) => `${API_BASE}/api/projects/${enc(id)}/report`,
   exportUrl: (id, format) =>
     `${API_BASE}/api/projects/${enc(id)}/export${qs({ format })}`,
+  transcriptExportUrl: (id, format) =>
+    `${API_BASE}/api/projects/${enc(id)}/transcript/export${qs({ format })}`,
   fileUrl: (id, relPath) => `${API_BASE}/api/files/${enc(id)}/${relPath}`,
   reportHtml: () => null,
 };

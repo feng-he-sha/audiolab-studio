@@ -269,6 +269,38 @@ export interface JobSummary {
   job_id: string;
 }
 
+/* ------------------------------------------------------------------ */
+/* Speech-to-text (SenseVoice)                                        */
+/* ------------------------------------------------------------------ */
+
+export type TranscriptFormat = "srt" | "vtt" | "txt";
+
+export interface TranscriptSegment {
+  id: number;
+  start: number;
+  stop: number;
+  text: string;
+  /** May be empty when the engine does not detect the language per segment. */
+  language: string;
+  /** May be empty: neutral | happy | sad | angry | surprise ... */
+  emotion: string;
+  /** May be empty: Speech | Music | Laughter | Applause ... */
+  event: string;
+}
+
+export interface TranscriptResult {
+  backend: "sensevoice" | string;
+  model_dir: string;
+  /** zh / en / ja / ko / yue / auto */
+  language: string;
+  text: string;
+  duration: number;
+  /** Backend decode time in seconds (optional for older payloads). */
+  elapsed?: number;
+  warnings: string[];
+  segments: TranscriptSegment[];
+}
+
 /** WebSocket /api/ws/events payloads. */
 export type ServerEvent =
   | { type: "job"; job: Job }
@@ -303,6 +335,7 @@ export interface ApiClient {
   timbre(id: string): Promise<TimbreResult>;
   artifacts(id: string): Promise<{ artifacts: Artifact[] }>;
   peaks(id: string, artifactId: string): Promise<Peaks>;
+  transcript(id: string): Promise<TranscriptResult>;
 
   setSegmentLabel(
     id: string,
@@ -331,6 +364,7 @@ export interface ApiClient {
 
   reportUrl(id: string): string;
   exportUrl(id: string, format: string): string;
+  transcriptExportUrl(id: string, format: TranscriptFormat): string;
   fileUrl(id: string, relPath: string): string;
   /** Demo only: inline report HTML. Real backend returns null (use iframe). */
   reportHtml(id: string): string | null;

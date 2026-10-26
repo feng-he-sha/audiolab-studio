@@ -37,6 +37,10 @@ class Settings:
     separation_fallback: str = "UVR-MDX-NET-Inst_HQ_4.onnx"
     timbre_backend: str = "colorsplitter"  # colorsplitter | mfcc
     enable_tagging: bool = True
+    asr_enabled: bool = True
+    asr_language: str = "auto"  # auto | zh | en | ja | ko | yue
+    asr_model_dir: str = ""  # empty = auto-detect
+    asr_max_segments: int = 200
     extra: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -49,6 +53,7 @@ def ensure_dirs() -> None:
     (MODELS / "separator").mkdir(parents=True, exist_ok=True)
     (MODELS / "colorsplitter").mkdir(parents=True, exist_ok=True)
     (MODELS / "silero").mkdir(parents=True, exist_ok=True)
+    (MODELS / "sensevoice").mkdir(parents=True, exist_ok=True)
     (MODELS / "hf").mkdir(parents=True, exist_ok=True)
     WEB_DIST.mkdir(parents=True, exist_ok=True)
 
@@ -73,6 +78,8 @@ def load_settings() -> Settings:
         settings.device = os.environ["AUDIOLAB_DEVICE"]
     if os.environ.get("HF_ENDPOINT"):
         settings.hf_endpoint = os.environ["HF_ENDPOINT"]
+    if os.environ.get("AUDIOLAB_SENSEVOICE_DIR"):
+        settings.asr_model_dir = os.environ["AUDIOLAB_SENSEVOICE_DIR"]
     return settings
 
 

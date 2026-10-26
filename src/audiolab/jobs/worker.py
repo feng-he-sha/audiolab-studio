@@ -68,6 +68,9 @@ def run_analyze(job: dict[str, Any], project: dict[str, Any], progress) -> None:
         {
             "clusters": len(timbre.clusters),
             "timbre_backend": result.timbre.backend,
+            "transcript_segments": len(result.transcript.segments) if result.transcript else 0,
+            "asr_backend": result.transcript.backend if result.transcript else "",
+            "asr_language": result.transcript.language if result.transcript else "",
             "duration": result.media.duration,
             "report_url": result.report_url,
             "warnings": len(result.warnings),

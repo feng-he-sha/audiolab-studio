@@ -7,6 +7,7 @@ import {
   FileText,
   Layers,
   Loader2,
+  Mic,
   RefreshCw,
   Scan,
   SlidersHorizontal,
@@ -27,11 +28,13 @@ import { ProcessPanel } from "./ProcessPanel";
 import { SeparationPanel } from "./SeparationPanel";
 import { TimelinePanel } from "./TimelinePanel";
 import { TimbrePanel } from "./TimbrePanel";
+import { TranscriptPanel } from "./TranscriptPanel";
 
 const TABS: { id: TabKey; label: string; icon: ReactNode }[] = [
   { id: "overview", label: "概览", icon: <Layers size={14} /> },
   { id: "timeline", label: "时间轴", icon: <Activity size={14} /> },
   { id: "separation", label: "分离", icon: <Waves size={14} /> },
+  { id: "transcript", label: "转写", icon: <Mic size={14} /> },
   { id: "timbre", label: "音色", icon: <Scan size={14} /> },
   { id: "process", label: "处理", icon: <SlidersHorizontal size={14} /> },
   { id: "report", label: "报告", icon: <FileText size={14} /> },
@@ -180,6 +183,7 @@ export function ProjectView(): ReactNode {
         {selectedTab === "overview" ? <OverviewPanel /> : null}
         {selectedTab === "timeline" ? <TimelinePanel /> : null}
         {selectedTab === "separation" ? <SeparationPanel /> : null}
+        {selectedTab === "transcript" ? <TranscriptPanel /> : null}
         {selectedTab === "timbre" ? <TimbrePanel /> : null}
         {selectedTab === "process" ? <ProcessPanel /> : null}
         {selectedTab === "report" ? <ReportPanel /> : null}

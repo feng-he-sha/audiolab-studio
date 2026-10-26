@@ -4,7 +4,7 @@
 
 ```text
 ┌────────────────────────────── React 工作台（web/） ──────────────────────────────┐
-│ 项目库 │ 时间轴/波形 │ 分离试听 │ 音色散点 │ 处理预设 │ 报告 │ 队列/模型/设置/诊断 │
+│ 项目库 │ 时间轴/波形 │ 分离试听 │ 音色散点 │ 转写文本 │ 处理预设 │ 报告 │ 队列/模型/设置/诊断 │
 └───────────────▲──────────────────────────────────────────────────────────────────┘
                 │ REST + WebSocket（127.0.0.1）
 ┌───────────────┴──────────────── FastAPI（src/audiolab/server） ──────────────────┐
@@ -13,7 +13,7 @@
                 │ 子进程 JSONL 进度事件
 ┌───────────────┴──────────────── Job Worker（jobs/worker.py） ─────────────────────┐
 │ pipeline.analyze / pipeline.refuse / pipeline.process / model download            │
-│   media → separation → vad → tagging → fusion → timbre → preview/report → process  │
+│   media → separation → vad → tagging → fusion → timbre → asr → preview/report → process │
 └───────────────▲──────────────────────────────────────────────────────────────────┘
                 │
 ┌───────────────┴──────────────── Engines（engines/ + core/） ───────────────────────┐
@@ -36,7 +36,7 @@
 - 队列单 worker，GPU 任务串行，避免 8GB 显存竞争。
 - 进度事件：`stage` / `progress` / `log` / `done` / `error`；同时写 `workspace/logs/job-*.log`。
 - 取消：psutil 终止进程树；启动时把遗留 `running` 标记为 `interrupted`，可重试。
-- 阶段缓存：`analysis.json`、`stems/`、`audio/`、`timbre/`、`preview/`、`peaks/`；`force=true` 全量重跑。
+- 阶段缓存：`analysis.json`、`stems/`、`audio/`、`timbre/`、`transcript.json`、`preview/`、`peaks/`；`force=true` 全量重跑。
 - `refuse` 依赖 `evidence.npz`（vocal/music 掩码 + AST 窗口 + RMS），调阈值无需重跑分离。
 
 ## 4. 数据库（SQLite WAL）
@@ -59,8 +59,9 @@
 4. **tagging**：AST 10s 窗/5s 跳步，关键类别 Music/Speech/Singing/Sound effect 等；缺失时跳过。
 5. **fusion**：20ms 帧；vocal/music 掩码 → 四类标签；中值滤波、间隙合并、最短段、边界吸附、置信度、top tags。
 6. **timbre**：从 vocal 段切 1.5–10s 片段；ColorSplitter timbre-v1 嵌入 → 余弦层次聚类；F0/质心/rolloff/flatness/HNR；中文簇标签；MFCC 降级。
-7. **preview/report**：32k AAC 预览、2000 桶 peaks、离线 HTML 报告、analysis.json。
-8. **processing**：两遍 loudnorm；预设 douyin/podcast/movie/music/clean；movie 用 stems sidechain 闪避；`--mux-video` 回贴。
+7. **asr**：SenseVoiceSmall ONNX（sherpa-onnx，CPU）；对 vocals/vocals+music 分段逐段转写，保留原始时间边界；输出 `transcript.json`（全文/语言/情绪/事件）。模型缺失或异常只跳过，不阻塞流水线。
+8. **preview/report**：32k AAC 预览、2000 桶 peaks、离线 HTML 报告（含转写区）、analysis.json。
+9. **processing**：两遍 loudnorm；预设 douyin/podcast/movie/music/clean；movie 用 stems sidechain 闪避；`--mux-video` 回贴。
 
 ## 6. 前端
 

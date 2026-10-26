@@ -73,8 +73,28 @@ interface TimbreResult {
   warnings: string[];
 }
 
+interface TranscriptSegment {
+  id: number;
+  start: number; stop: number;
+  text: string;
+  language: string;   // zh | en | ja | ko | yue，可能为空
+  emotion: string;    // NEUTRAL / HAPPY / SAD / ANGRY / ...
+  event: string;      // Speech / BGM / Applause / ...
+}
+
+interface TranscriptResult {
+  backend: "sensevoice";
+  model_dir: string;
+  language: string;
+  text: string;
+  segments: TranscriptSegment[];
+  duration: number;
+  elapsed: number;
+  warnings: string[];
+}
+
 interface Artifact {
-  id: string; kind: "original" | "vocals" | "instrumental" | "processed" | "preview" | "report";
+  id: string; kind: "original" | "vocals" | "instrumental" | "processed" | "preview" | "report" | "transcript";
   label: string; path: string; url: string;
   duration: number; size: number; mime: string;
 }
@@ -105,6 +125,8 @@ interface Job {
 | DELETE | `/api/projects/{id}` | `?delete_outputs=true` | `{ok}` |
 | GET | `/api/projects/{id}/timeline` | — | `Timeline` |
 | GET | `/api/projects/{id}/timbre` | — | `TimbreResult` |
+| GET | `/api/projects/{id}/transcript` | — | `TranscriptResult`（未转写时 `segments=[]` + warning） |
+| GET | `/api/projects/{id}/transcript/export?format=srt\|vtt\|txt` | — | `text/plain` 字幕/文本附件 |
 | GET | `/api/projects/{id}/artifacts` | — | `{artifacts: Artifact[]}` |
 | GET | `/api/projects/{id}/report` | — | HTML |
 | GET | `/api/projects/{id}/export` | `?format=zip` | file download |
@@ -115,7 +137,7 @@ interface Job {
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| POST | `/api/projects/{id}/analyze` | `{quality?, separation_model?, skip_tagging?, clusters?, timbre_threshold?, force?}` | `{job_id}` |
+| POST | `/api/projects/{id}/analyze` | `{quality?, separation_model?, skip_tagging?, skip_asr?, asr_language?, asr_model_dir?, clusters?, timbre_threshold?, force?}` | `{job_id}` |
 | POST | `/api/projects/{id}/refuse` | `{min_segment?, smooth_frames?, min_music?}` | `{job_id}` |
 | POST | `/api/projects/{id}/process` | `{preset, params?, mux_video?, output_format?}` | `{job_id}` |
 
@@ -160,7 +182,20 @@ interface Job {
 
 Clients may send `{"type":"ping"}`; server replies `{"type":"pong"}`.
 
-## 3. Import behavior
+## 3. Speech-to-text (SenseVoice)
+
+- Optional stage after timbre, on the vocals stem; it never blocks the rest of
+  the analysis if the model/package is missing.
+- `skip_asr` defaults to `false`; `asr_language` is `auto|zh|en|ja|ko|yue`;
+  `asr_model_dir` overrides auto-discovery.
+- Auto-discovery: `settings.asr_model_dir` → `AUDIOLAB_SENSEVOICE_DIR` →
+  `models/sensevoice` → `models/sensevoice-onnx` → `~/.dsh/speech-to-text/sensevoice/models/sensevoice-onnx`.
+- Model bundle: `model.int8.onnx` + `tokens.txt` (sherpa-onnx SenseVoiceSmall).
+- Output: `transcript.json` plus `GET .../transcript`; export `srt`/`vtt`/`txt`.
+- Empty transcript is a normal success (`segments=[]`, warning); only model or
+  package errors are warnings.
+
+## 4. Import behavior
 
 - `POST /api/projects/import` accepts local absolute paths (the native desktop
   case). Folders are scanned recursively for supported audio/video extensions.
@@ -169,7 +204,7 @@ Clients may send `{"type":"ping"}`; server replies `{"type":"pong"}`.
 - Supported: `.mp3 .wav .flac .m4a .aac .ogg .opus .wma .aiff .aif .mp4 .mov .mkv .webm .avi`.
 - Duplicate SHA256 returns the existing project (with `reused: true` in summary).
 
-## 4. UI requirements
+## 5. UI requirements
 
 Layout: 260px left library, flexible center, 330px right inspector. Dark theme
 default. Chinese UI.
@@ -179,7 +214,7 @@ default. Chinese UI.
 - **Library**: search, status filter, project rows with status dot, duration,
   label summary; multi-select; drag/drop import; native dialog via
   `window.pywebview.api.pick_files()` when available, otherwise upload.
-- **Project tabs**: 概览 / 时间轴 / 分离 / 音色 / 处理 / 报告.
+- **Project tabs**: 概览 / 时间轴 / 分离 / 音色 / 转写 / 处理 / 报告.
 - **Timeline**: canvas waveform + colored segment overlay + ruler + playhead;
   zoom buttons/slider; click to seek; click segment selects it; segment
   inspector allows label override and merge; label filter buttons.
@@ -187,11 +222,14 @@ default. Chinese UI.
   gain + mute + solo. Use Web Audio for synced stems; fall back to `<audio>`.
 - **Timbre**: SVG PCA scatter; cluster cards with color, label, F0/centroid,
   play representative clip; rename/merge.
+- **Transcript**: full text, copy, SRT/VTT/TXT export; per-segment time/text/
+  language/emotion/event table; empty state when ASR is off.
 - **Process**: preset cards, parameter controls (target LUFS, denoise, duck,
   output format, mux video), render button, preview player, A/B switch.
 - **Queue**: active and recent jobs, progress bar, stage, cancel/retry, log tail.
 - **Models**: table/cards with status, size, license, download/delete/test.
-- **Settings**: workspace/models dirs, device, HF mirror, theme, language.
+- **Settings**: workspace/models dirs, device, HF mirror, theme, language,
+  ASR toggle/language/model directory.
 - **Doctor**: check list with hints.
 - **Report**: iframe pointing at `/api/projects/{id}/report`, open-in-browser
   link and export buttons.
@@ -206,7 +244,7 @@ font: "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
 ```
 Use inline SVG icons from `lucide-react`. Avoid external fonts/CDNs.
 
-## 5. Build / dev
+## 6. Build / dev
 
 ```bash
 pnpm --dir web install
@@ -217,7 +255,7 @@ pnpm --dir web dev            # http://127.0.0.1:7860 with /api proxy
 Fake mode for UI development: backend env `AUDIOLAB_FAKE=1` returns synthetic
 timeline/timbre quickly; no models required.
 
-## 6. Interaction rules
+## 7. Interaction rules
 
 - Never block the UI on a job: submit then poll `/api/jobs` and/or use WS.
 - After a job finishes, refresh project, timeline, timbre, artifacts.

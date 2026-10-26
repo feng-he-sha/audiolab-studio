@@ -22,6 +22,8 @@ from audiolab.core.schemas import (
     TimbreCluster,
     TimbreFeatures,
     TimbreResult,
+    TranscriptResult,
+    TranscriptSegment,
 )
 from audiolab.server import db
 
@@ -121,6 +123,34 @@ def _gen_timbre(duration: float) -> TimbreResult:
     return TimbreResult(backend="colorsplitter", clusters=clusters, points=points, warnings=[])
 
 
+def _gen_transcript(timeline: Timeline) -> TranscriptResult:
+    segments: list[TranscriptSegment] = []
+    for seg in timeline.segments:
+        if seg.label not in {"vocals", "vocals+music"}:
+            continue
+        segments.append(
+            TranscriptSegment(
+                id=len(segments) + 1,
+                start=seg.start,
+                stop=seg.stop,
+                text=f"这是第 {len(segments) + 1} 段演示语音，用于展示 SenseVoice 转写结果。",
+                language="zh",
+                emotion="NEUTRAL",
+                event="Speech",
+            )
+        )
+    return TranscriptResult(
+        backend="sensevoice",
+        model_dir="demo",
+        language="zh",
+        text="".join(seg.text for seg in segments),
+        segments=segments,
+        duration=timeline.duration,
+        elapsed=0.0,
+        warnings=["AUDIOLAB_FAKE=1 演示转写"],
+    )
+
+
 def _copy_audio(source: str, target: Path) -> bool:
     target.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -147,7 +177,7 @@ def _make_preview(source: Path, target: Path) -> None:
         pass
 
 
-def _write_report(out_dir: Path, timeline: Timeline, timbre: TimbreResult) -> Path:
+def _write_report(out_dir: Path, timeline: Timeline, timbre: TimbreResult, transcript: TranscriptResult) -> Path:
     try:
         from audiolab.core.report import build
 
@@ -156,6 +186,7 @@ def _write_report(out_dir: Path, timeline: Timeline, timbre: TimbreResult) -> Pa
             media=media,
             timeline=timeline,
             timbre=timbre,
+            transcript=transcript,
             warnings=["AUDIOLAB_FAKE=1 演示数据"],
         )
         return build(result, out_dir / "report.html", "AudioLab Demo")
@@ -191,6 +222,8 @@ def _artifacts(project_id: str, out_dir: Path, duration: float) -> list[Artifact
         items.append(art("instrumental", "instrumental", "伴奏", "stems/instrumental.wav"))
     if (out_dir / "preview" / "original.m4a").exists():
         items.append(art("preview_original", "preview", "试听", "preview/original.m4a", "audio/mp4"))
+    if (out_dir / "transcript.json").exists():
+        items.append(art("transcript", "transcript", "转写文本", "transcript.json", "application/json"))
     return items
 
 
@@ -231,13 +264,16 @@ def run(job: dict[str, Any], project: dict[str, Any], progress) -> None:
     progress("fusion", 60, "演示模式：假分段")
     timeline = _gen_timeline(duration)
     timbre = _gen_timbre(duration)
+    transcript = _gen_transcript(timeline)
     progress("timbre", 80, "演示模式：假音色簇")
-    report = _write_report(out_dir, timeline, timbre)
+    progress("asr", 88, "演示模式：假转写")
+    report = _write_report(out_dir, timeline, timbre, transcript)
     result = AnalysisResult(
         project_id=project["id"],
         media=MediaInfo(path=source, filename=Path(source).name, duration=duration),
         timeline=timeline,
         timbre=timbre,
+        transcript=transcript,
         artifacts=_artifacts(project["id"], out_dir, duration),
         report_url=f"/api/projects/{project['id']}/report",
         warnings=["AUDIOLAB_FAKE=1 演示数据，非真实分析结果"],
@@ -251,11 +287,24 @@ def run(job: dict[str, Any], project: dict[str, Any], progress) -> None:
     (out_dir / "timbre.json").write_text(
         json.dumps(timbre.model_dump(), ensure_ascii=False, indent=2), encoding="utf-8"
     )
+    (out_dir / "transcript.json").write_text(
+        json.dumps(transcript.model_dump(), ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     run_id = db.new_id("r_")
     db.save_timeline(project["id"], run_id, timeline)
     db.save_timbre(project["id"], run_id, timbre)
     db.save_run(project["id"], "analyze", "done", job.get("params") or {}, str(out_dir), run_id=run_id)
     summary = dict(timeline.summary)
-    summary.update({"clusters": len(timbre.clusters), "duration": duration, "fake": True, "report_url": result.report_url})
+    summary.update(
+        {
+            "clusters": len(timbre.clusters),
+            "transcript_segments": len(transcript.segments),
+            "asr_backend": transcript.backend,
+            "asr_language": transcript.language,
+            "duration": duration,
+            "fake": True,
+            "report_url": result.report_url,
+        }
+    )
     db.update_project(project["id"], status="analyzed", summary=summary, error="")
     progress("report", 100, f"演示报告已生成: {report.name}")

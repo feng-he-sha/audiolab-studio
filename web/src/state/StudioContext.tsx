@@ -26,7 +26,14 @@ import { friendlyError } from "../utils/format";
 import { useInterval, useLocalStorage } from "../utils/hooks";
 import { useToast, type ToastApi } from "./ui";
 
-export type TabKey = "overview" | "timeline" | "separation" | "timbre" | "process" | "report";
+export type TabKey =
+  | "overview"
+  | "timeline"
+  | "separation"
+  | "transcript"
+  | "timbre"
+  | "process"
+  | "report";
 export type WorkspaceView = "studio" | "models" | "settings" | "doctor";
 
 export interface StudioContextValue {
@@ -317,12 +324,15 @@ export function StudioProvider({ children }: { children: ReactNode }): ReactNode
     document.documentElement.style.colorScheme = theme === "light" ? "light" : "dark";
   }, [theme]);
 
-  /* URL deep-links: ?project=<id>&tab=timeline|timbre|process|report&view=models
+  /* URL deep-links: ?project=<id>&tab=timeline|transcript|timbre|process|report&view=models
      Works in both real and demo mode (used for automation/screenshots). */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (tab && ["overview", "timeline", "separation", "timbre", "process", "report"].includes(tab)) {
+    if (
+      tab &&
+      ["overview", "timeline", "separation", "transcript", "timbre", "process", "report"].includes(tab)
+    ) {
       setSelectedTab(tab as TabKey);
     }
     const targetView = params.get("view");

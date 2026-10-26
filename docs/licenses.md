@@ -12,6 +12,8 @@ AudioLab Studio 自身代码按 MIT 使用（见项目根目录，如未附带 L
 | ColorSplitter（timbre-v1 编码器/权重） | 音色嵌入 | MIT | https://github.com/KakaruHayate/ColorSplitter |
 | Resemblyzer（编码器网络定义） | 音色/说话人编码器 | MIT | https://github.com/resemble-ai/Resemblyzer |
 | Silero VAD | 人声活动检测 | MIT | https://github.com/snakers4/silero-vad |
+| sherpa-onnx | SenseVoice ONNX 推理运行时 | Apache-2.0 | https://github.com/k2-fsa/sherpa-onnx |
+| SenseVoiceSmall（ONNX） | 中/英/日/韩/粤语转写 | MIT（SenseVoice / FunASR） | https://github.com/FunAudioLLM/SenseVoice |
 | AST（AudioSet Transformer） | 场景标签 | BSD-3-Clause | https://huggingface.co/MIT/ast-finetuned-audioset-10-10-0.4593 |
 | librosa | 音频特征/重采样 | ISC | https://librosa.org |
 | soundfile | WAV I/O | BSD-3-Clause | https://python-soundfile.readthedocs.io |
@@ -27,9 +29,10 @@ AudioLab Studio 自身代码按 MIT 使用（见项目根目录，如未附带 L
 | 权重 | 来源 | 说明 |
 |---|---|---|
 | `model_bs_roformer_ep_317_sdr_12.9755.ckpt` | `lainlives/audio-separator-models`（Hugging Face 镜像） | UVR 社区模型；上游 `beveradb` 仓库当前不可匿名访问 |
-| `UVR-MDX-NET-Inst_HQ_3.onnx` | 同上 | 67MB 兜底模型 |
+| `UVR-MDX-NET-Inst_HQ_4.onnx` | 同上 | 59MB 兜底模型 |
 | `timbre-v1.pt` | ColorSplitter 仓库固定 commit | MIT，17MB |
-| `silero_vad.onnx` | Silero VAD 仓库 | MIT，2.3MB |
+| `silero_vad.onnx` | Silero VAD 仓库 | MIT，1.9MB |
+| `model.int8.onnx` + `tokens.txt` | `csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17` | MIT；239MB + 0.3MB |
 | AST AudioSet | Hugging Face `MIT/ast-finetuned-audioset-10-10-0.4593` | BSD-3-Clause |
 
 **重要**：分离模型权重的许可证以模型作者/上游仓库为准，本仓库未对其商用授权做任何保证。若用于商业发布（例如抖音内容生产），请先确认权重来源和授权；不确定时替换为有明确许可的模型或仅用于内部测试。

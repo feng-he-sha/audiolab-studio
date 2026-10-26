@@ -19,10 +19,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", help="只下载指定模型 id")
     parser.add_argument("--skip-ast", action="store_true", help="跳过 AST（约 350MB）")
+    parser.add_argument("--with-asr", action="store_true", help="同时下载 SenseVoice ONNX（约 239MB）")
     parser.add_argument(
         "--recommended",
         action="store_true",
-        help="只下载推荐模型（MDX HQ4 + 音色 + VAD，约 80MB），跳过 BS-Roformer/AST 大模型",
+        help="只下载推荐模型（MDX HQ4 + 音色 + VAD，约 80MB），跳过 BS-Roformer/AST/SenseVoice 大模型",
     )
     parser.add_argument("--mirror", default=os.environ.get("HF_ENDPOINT", "https://hf-mirror.com"))
     args = parser.parse_args()
@@ -33,6 +34,8 @@ def main() -> int:
     print(f"HF 镜像: {os.environ.get('HF_ENDPOINT') or 'https://huggingface.co'}")
 
     recommended = ["separation.mdx_fast", "timbre.colorsplitter", "vad.silero"]
+    if args.with_asr:
+        recommended.append("asr.sensevoice")
     targets = [args.model] if args.model else (recommended if args.recommended else list(MODEL_BY_ID))
     if args.skip_ast:
         targets = [m for m in targets if m != "tagging.ast"]

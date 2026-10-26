@@ -113,6 +113,78 @@ export function stageText(stage: string): string {
   return JOB_STAGE_TEXT[base] ?? stage;
 }
 
+/* ---------------------------------------------------------------- */
+/* Speech-to-text helpers (SenseVoice)                              */
+/* ---------------------------------------------------------------- */
+
+export const LANGUAGE_TEXT: Record<string, string> = {
+  zh: "中文",
+  en: "英语",
+  ja: "日语",
+  ko: "韩语",
+  yue: "粤语",
+  auto: "自动识别",
+};
+
+export function languageText(code: string | null | undefined): string {
+  if (!code) return "";
+  return LANGUAGE_TEXT[code.trim().toLowerCase()] ?? code;
+}
+
+export const ASR_EMOTION_TEXT: Record<string, string> = {
+  neutral: "平静",
+  happy: "愉快",
+  sad: "低落",
+  angry: "激动",
+  surprise: "惊讶",
+  fearful: "紧张",
+  disgusted: "厌恶",
+  emo_neutral: "平静",
+  emo_happy: "愉快",
+  emo_sad: "低落",
+  emo_angry: "激动",
+  emo_surprise: "惊讶",
+  emo_fearful: "紧张",
+  emo_disgusted: "厌恶",
+  unknown: "",
+  emo_unknown: "",
+};
+
+export function emotionText(emotion: string | null | undefined): string {
+  if (!emotion) return "";
+  const normalized = emotion.trim().toLowerCase();
+  if (normalized in ASR_EMOTION_TEXT) return ASR_EMOTION_TEXT[normalized];
+  const base = normalized.replace(/^emo_/, "");
+  return base === "unknown" ? "" : (ASR_EMOTION_TEXT[base] ?? emotion);
+}
+
+export const ASR_EVENT_TEXT: Record<string, string> = {
+  speech: "语音",
+  music: "音乐",
+  bgm: "背景音乐",
+  sing: "歌唱",
+  singing: "歌唱",
+  laughter: "笑声",
+  laugh: "笑声",
+  applause: "掌声",
+  cough: "咳嗽",
+  sneeze: "喷嚏",
+  breath: "呼吸",
+  noise: "噪声",
+  silence: "静音",
+  crying: "哭声",
+  unknown: "",
+  event_unknown: "",
+};
+
+export function eventText(event: string | null | undefined): string {
+  if (!event) return "";
+  const normalized = event.trim().toLowerCase();
+  if (normalized in ASR_EVENT_TEXT) return ASR_EVENT_TEXT[normalized];
+  const base = normalized.replace(/^event_/, "");
+  return base === "unknown" ? "" : (ASR_EVENT_TEXT[base] ?? event);
+}
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }

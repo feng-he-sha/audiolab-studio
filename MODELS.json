@@ -127,6 +127,40 @@
         "speech",
         "gpu"
       ]
+    },
+    {
+      "id": "asr.sensevoice",
+      "engine": "asr",
+      "label": "SenseVoiceSmall 语音转写 (ONNX int8)",
+      "kind": "file",
+      "license": "MIT (SenseVoice / FunASR)",
+      "source": "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main",
+      "note": "239MB，中/英/日/韩/粤语转写与情绪/事件标签；缺失时跳过转写。本机已有模型可直接复用。",
+      "repo_id": "",
+      "total_size": 239549735,
+      "files": [
+        {
+          "filename": "model.int8.onnx",
+          "size": 239233841,
+          "sha256": "",
+          "subdir": "sensevoice",
+          "url": "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main/model.int8.onnx"
+        },
+        {
+          "filename": "tokens.txt",
+          "size": 315894,
+          "sha256": "",
+          "subdir": "sensevoice",
+          "url": "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main/tokens.txt"
+        }
+      ],
+      "tags": [
+        "asr",
+        "speech",
+        "subtitle",
+        "cpu",
+        "optional"
+      ]
     }
   ]
 }

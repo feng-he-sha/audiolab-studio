@@ -8,8 +8,14 @@ import {
   Tag,
   X,
 } from "lucide-react";
-import type { Label, Segment } from "../api/types";
-import { LABEL_TEXT, formatSeconds } from "../utils/format";
+import type { Label, Segment, TranscriptSegment } from "../api/types";
+import {
+  LABEL_TEXT,
+  emotionText,
+  eventText,
+  formatSeconds,
+  languageText,
+} from "../utils/format";
 import { Chip } from "./common/ui";
 
 export interface SegmentInspectorProps {
@@ -17,6 +23,8 @@ export interface SegmentInspectorProps {
   index: number;
   playhead: number;
   busy: boolean;
+  /** Closest transcript segment overlapping the current timeline segment. */
+  transcript?: TranscriptSegment | null;
   onChangeLabel: (label: Label | null) => void;
   onMergeNext: () => void;
   onSplitAtPlayhead: () => void;
@@ -31,6 +39,7 @@ export function SegmentInspector({
   index,
   playhead,
   busy,
+  transcript,
   onChangeLabel,
   onMergeNext,
   onSplitAtPlayhead,
@@ -114,6 +123,27 @@ export function SegmentInspector({
             </div>
           )}
         </div>
+
+        {transcript && transcript.text ? (
+          <div className="segment-transcript">
+            <span className="k">转写文本</span>
+            <div className="segment-transcript-text">{transcript.text}</div>
+            <div className="segment-transcript-meta">
+              {languageText(transcript.language) ? (
+                <Chip>{languageText(transcript.language)}</Chip>
+              ) : null}
+              {emotionText(transcript.emotion) ? (
+                <Chip tone="var(--warn)">情绪 {emotionText(transcript.emotion)}</Chip>
+              ) : null}
+              {eventText(transcript.event) ? (
+                <Chip tone="var(--accent-2)">事件 {eventText(transcript.event)}</Chip>
+              ) : null}
+              <span className="muted segment-transcript-time">
+                {formatSeconds(transcript.start)} → {formatSeconds(transcript.stop)}
+              </span>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="segment-actions">

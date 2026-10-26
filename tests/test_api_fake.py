@@ -65,6 +65,17 @@ def test_import_and_fake_analyze(client, tmp_path) -> None:
     assert timeline["duration"] > 0
     timbre = client.get(f"/api/projects/{pid}/timbre").json()
     assert "clusters" in timbre
+    transcript = client.get(f"/api/projects/{pid}/transcript").json()
+    assert transcript["backend"] == "sensevoice"
+    assert transcript["segments"]
+    assert transcript["text"]
+    assert any(a["kind"] == "transcript" for a in client.get(f"/api/projects/{pid}/artifacts").json()["artifacts"])
+    for fmt in ("srt", "vtt", "txt"):
+        exported = client.get(f"/api/projects/{pid}/transcript/export?format={fmt}")
+        assert exported.status_code == 200, exported.text
+        assert exported.text.strip()
+    assert "-->" in client.get(f"/api/projects/{pid}/transcript/export?format=srt").text
+
     artifacts = client.get(f"/api/projects/{pid}/artifacts").json()["artifacts"]
     assert any(a["kind"] == "original" for a in artifacts)
     report = client.get(f"/api/projects/{pid}/report")

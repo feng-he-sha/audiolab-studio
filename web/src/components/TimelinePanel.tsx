@@ -12,7 +12,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { describeError } from "../api/client";
-import type { Artifact, Label, Peaks, Segment, Timeline } from "../api/types";
+import type { Artifact, Label, Peaks, Segment, Timeline, TranscriptResult, TranscriptSegment } from "../api/types";
 import type { TransportTrack } from "../audio/Transport";
 import { useTransport } from "../audio/useTransport";
 import { useStudio } from "../state/StudioContext";
@@ -36,12 +36,30 @@ interface ViewRange {
   end: number;
 }
 
+/** Pick the transcript segment with the largest time overlap. */
+function overlapTranscript(
+  transcriptSegments: TranscriptSegment[],
+  segment: Segment,
+): TranscriptSegment | null {
+  let best: TranscriptSegment | null = null;
+  let bestOverlap = 0;
+  for (const item of transcriptSegments) {
+    const overlap = Math.min(segment.stop, item.stop) - Math.max(segment.start, item.start);
+    if (overlap > bestOverlap) {
+      bestOverlap = overlap;
+      best = item;
+    }
+  }
+  return bestOverlap > 0 ? best : null;
+}
+
 export function TimelinePanel(): ReactNode {
   const { client, demo, selectedProject, dataVersion, toast } = useStudio();
   const projectId = selectedProject?.id ?? "";
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [peaks, setPeaks] = useState<Peaks | null>(null);
+  const [transcript, setTranscript] = useState<TranscriptResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -71,6 +89,13 @@ export function TimelinePanel(): ReactNode {
       setSelectedIndex(null);
       setPlayhead(0);
       setView({ start: 0, end: Math.max(0.5, value.duration) });
+      try {
+        const transcriptValue = await client.transcript(projectId);
+        setTranscript(transcriptValue);
+      } catch {
+        // Transcript is optional (SenseVoice may be disabled / model missing).
+        setTranscript(null);
+      }
       try {
         const response = await client.artifacts(projectId);
         setArtifacts(response.artifacts);
@@ -307,6 +332,8 @@ export function TimelinePanel(): ReactNode {
 
   const selectedSegment: Segment | null =
     selectedIndex !== null ? (timeline.segments[selectedIndex] ?? null) : null;
+  const transcriptSegment =
+    selectedSegment && transcript ? overlapTranscript(transcript.segments, selectedSegment) : null;
 
   const readyArtifact = Boolean(transport);
   const zoomPercent = duration > 0 ? Math.round((1 - span / duration) * 100) : 0;
@@ -414,6 +441,7 @@ export function TimelinePanel(): ReactNode {
           index={selectedIndex}
           playhead={playhead}
           busy={busy || !readyArtifact}
+          transcript={transcriptSegment}
           onChangeLabel={changeLabel}
           onMergeNext={mergeNext}
           onSplitAtPlayhead={splitAtPlayhead}

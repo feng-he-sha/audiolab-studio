@@ -21,6 +21,9 @@ import type {
   Timeline,
   TimbreCluster,
   TimbreResult,
+  TranscriptFormat,
+  TranscriptResult,
+  TranscriptSegment,
 } from "./types";
 
 export function demoEnabled(): boolean {
@@ -454,6 +457,101 @@ const artifacts: Record<string, Artifact[]> = {
   [P2]: [],
 };
 
+/* ------------------------------------------------------------------ */
+/* Speech-to-text demo data (SenseVoice)                              */
+/* ------------------------------------------------------------------ */
+
+const p1TranscriptSegments: TranscriptSegment[] = [
+  { id: 1, start: 1.9, stop: 3.2, text: "大家好，今天想跟大家聊一个特别实用的话题。", language: "zh", emotion: "neutral", event: "Speech" },
+  { id: 2, start: 3.3, stop: 5.0, text: "为什么你每天都很忙，但事情总是做不完？", language: "zh", emotion: "neutral", event: "Speech" },
+  { id: 3, start: 5.0, stop: 6.5, text: "其实问题往往不在努力程度，而在方法。", language: "zh", emotion: "neutral", event: "Speech" },
+  { id: 4, start: 9.2, stop: 11.8, text: "第一点，先把任务拆小，一次只专注一件事。", language: "zh", emotion: "happy", event: "Speech" },
+  { id: 5, start: 12.0, stop: 14.5, text: "第二点，给自己设定明确的截止时间。", language: "zh", emotion: "neutral", event: "Speech" },
+  { id: 6, start: 14.7, stop: 16.6, text: "你会发现效率明显提升。", language: "zh", emotion: "happy", event: "Speech" },
+  { id: 7, start: 17.0, stop: 19.1, text: "第三点，学会拒绝那些不重要的请求。", language: "zh", emotion: "neutral", event: "Speech" },
+  { id: 8, start: 22.9, stop: 25.0, text: "最后，记得每天留一点时间复盘。", language: "zh", emotion: "neutral", event: "Speech" },
+  { id: 9, start: 25.2, stop: 27.3, text: "坚持两周，你会看到完全不一样的自己。", language: "zh", emotion: "happy", event: "Laughter" },
+  { id: 10, start: 27.6, stop: 29.0, text: "（音乐淡出）", language: "", emotion: "", event: "Music" },
+];
+
+const p3TranscriptSegments: TranscriptSegment[] = [
+  { id: 1, start: 0.4, stop: 4.0, text: "（前奏）", language: "", emotion: "", event: "Music" },
+  { id: 2, start: 4.9, stop: 12.2, text: "月光落在安静的街道上，我听见风在唱。", language: "zh", emotion: "neutral", event: "Speech" },
+  { id: 3, start: 12.8, stop: 20.0, text: "把所有的遗憾都留给昨天。", language: "zh", emotion: "sad", event: "Speech" },
+  { id: 4, start: 28.9, stop: 36.0, text: "我们一起唱到最后一句。", language: "zh", emotion: "happy", event: "Speech" },
+];
+
+function buildTranscript(
+  duration: number,
+  language: string,
+  segments: TranscriptSegment[],
+  warnings: string[] = [],
+): TranscriptResult {
+  return {
+    backend: "sensevoice",
+    model_dir: "E:\\AudioLab\\models\\sensevoice",
+    language,
+    text: segments.map((segment) => segment.text).join("\n"),
+    duration,
+    warnings,
+    segments,
+  };
+}
+
+function p1TemplateTranscript(projectId: string, duration: number): TranscriptResult {
+  const factor = duration > 0 ? duration / 29.4 : 1;
+  const segments = p1TranscriptSegments.map((segment) => ({
+    ...segment,
+    start: Number((segment.start * factor).toFixed(2)),
+    stop: Number((segment.stop * factor).toFixed(2)),
+  }));
+  return buildTranscript(duration, "zh", segments);
+}
+
+const transcripts: Record<string, TranscriptResult> = {
+  [P1]: buildTranscript(29.4, "zh", p1TranscriptSegments),
+  [P3]: buildTranscript(45.2, "zh", p3TranscriptSegments),
+};
+
+function pad2(value: number): string {
+  return String(Math.floor(value)).padStart(2, "0");
+}
+
+function srtClock(seconds: number, comma: boolean): string {
+  const safe = Math.max(0, seconds);
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const secs = Math.floor(safe % 60);
+  const millis = Math.round((safe - Math.floor(safe)) * 1000);
+  return `${pad2(hours)}:${pad2(minutes)}:${pad2(secs)}${comma ? "," : "."}${String(millis).padStart(3, "0")}`;
+}
+
+function exportTranscriptText(result: TranscriptResult, format: TranscriptFormat): string {
+  if (format === "srt") {
+    return (
+      result.segments
+        .map(
+          (segment, index) =>
+            `${index + 1}\n${srtClock(segment.start, true)} --> ${srtClock(segment.stop, true)}\n${segment.text}\n`,
+        )
+        .join("\n") + "\n"
+    );
+  }
+  if (format === "vtt") {
+    return (
+      "WEBVTT\n\n" +
+      result.segments
+        .map(
+          (segment) =>
+            `${srtClock(segment.start, false)} --> ${srtClock(segment.stop, false)}\n${segment.text}\n`,
+        )
+        .join("\n") +
+      "\n"
+    );
+  }
+  return `${result.text || result.segments.map((segment) => segment.text).join("\n")}\n`;
+}
+
 const models: ModelInfo[] = [
   {
     id: "silero-vad",
@@ -815,6 +913,7 @@ function startAnalyzeJob(project: Project): Job {
     }
     if (!timbres[project.id]) timbres[project.id] = clone(p1Timbre);
     if (!artifacts[project.id]) artifacts[project.id] = artifactsFor(project.id, duration, false);
+    if (!transcripts[project.id]) transcripts[project.id] = p1TemplateTranscript(project.id, duration);
     project.status = "analyzed";
     project.tags = ["演示", "已分析"];
     project.summary = {
@@ -1133,6 +1232,7 @@ export function createDemoClient(): ApiClient {
       delete timelines[id];
       delete timbres[id];
       delete artifacts[id];
+      delete transcripts[id];
       return { ok: true };
     },
 
@@ -1178,6 +1278,21 @@ export function createDemoClient(): ApiClient {
       const duration = project.media?.duration ?? 29.4;
       const seed = (artifactId.length % 7) + project.id.length;
       return makePeaks(duration, seed);
+    },
+
+    async transcript(id) {
+      const project = findProject(id);
+      const result = transcripts[id];
+      if (result) return clone(result);
+      return {
+        backend: "sensevoice",
+        model_dir: "E:\\AudioLab\\models\\sensevoice",
+        language: "zh",
+        text: "",
+        duration: project.media?.duration ?? 0,
+        warnings: ["本次分析未生成转写（演示数据）。"],
+        segments: [],
+      } satisfies TranscriptResult;
     },
 
     async setSegmentLabel(id, segmentId, userLabel) {
@@ -1369,6 +1484,12 @@ export function createDemoClient(): ApiClient {
     },
     exportUrl() {
       return "";
+    },
+    transcriptExportUrl(id, format) {
+      const result = transcripts[id];
+      if (!result || result.segments.length === 0) return "";
+      const text = exportTranscriptText(result, format);
+      return `data:text/plain;charset=utf-8,${encodeURIComponent(text)}`;
     },
     fileUrl(id, relPath) {
       return `/api/files/${encodeURIComponent(id)}/${relPath}`;

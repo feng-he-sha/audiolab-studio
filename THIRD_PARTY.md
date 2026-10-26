@@ -11,6 +11,8 @@ AudioLab Studio 只分发自己的编排代码、前端、脚本和文档；上�
 | ColorSplitter | 音色编码器权重与网络定义 | MIT | https://github.com/KakaruHayate/ColorSplitter |
 | Resemblyzer | VoiceEncoder 网络定义/预处理 | MIT | https://github.com/resemble-ai/Resemblyzer |
 | Silero VAD | 人声活动检测 | MIT | https://github.com/snakers4/silero-vad |
+| sherpa-onnx | SenseVoice ONNX 推理 | Apache-2.0 | https://github.com/k2-fsa/sherpa-onnx |
+| SenseVoiceSmall | 语音转写 | MIT（SenseVoice / FunASR） | https://github.com/FunAudioLLM/SenseVoice |
 | AST AudioSet | 场景标签 | BSD-3-Clause | https://huggingface.co/MIT/ast-finetuned-audioset-10-10-0.4593 |
 | librosa | 音频特征/重采样 | ISC | https://librosa.org |
 | soundfile | WAV I/O | BSD-3-Clause | https://python-soundfile.readthedocs.io |
