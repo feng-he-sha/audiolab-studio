@@ -1,0 +1,132 @@
+{
+  "schema": 1,
+  "note": "Model weights are not distributed with this repository. Download them with scripts/fetch_models.py or the Models page.",
+  "models": [
+    {
+      "id": "separation.bs_roformer",
+      "engine": "separation",
+      "label": "BS-Roformer 人声/伴奏分离 (HQ)",
+      "kind": "file",
+      "license": "UVR 社区模型权重，商用前请确认上游许可",
+      "source": "https://huggingface.co/lainlives/audio-separator-models/resolve/main",
+      "note": "默认分离模型，639MB，RTX 4060 8GB 可用；OOM 时自动降级 MDX。",
+      "repo_id": "",
+      "total_size": 639333486,
+      "files": [
+        {
+          "filename": "model_bs_roformer_ep_317_sdr_12.9755.ckpt",
+          "size": 639331213,
+          "sha256": "",
+          "subdir": "separator",
+          "url": "https://huggingface.co/lainlives/audio-separator-models/resolve/main/model_bs_roformer_ep_317_sdr_12.9755.ckpt"
+        },
+        {
+          "filename": "model_bs_roformer_ep_317_sdr_12.9755.yaml",
+          "size": 2273,
+          "sha256": "",
+          "subdir": "separator",
+          "url": "https://huggingface.co/lainlives/audio-separator-models/resolve/main/model_bs_roformer_ep_317_sdr_12.9755.yaml"
+        }
+      ],
+      "tags": [
+        "vocals",
+        "instrumental",
+        "gpu",
+        "hq"
+      ]
+    },
+    {
+      "id": "separation.mdx_fast",
+      "engine": "separation",
+      "label": "UVR-MDX-NET Inst HQ 4 (快速/兜底)",
+      "kind": "file",
+      "license": "UVR 社区模型权重，商用前请确认上游许可",
+      "source": "https://huggingface.co/lainlives/audio-separator-models/resolve/main",
+      "note": "59MB，CPU 也能跑，作为 8GB 显存不足时的兜底。",
+      "repo_id": "",
+      "total_size": 59074342,
+      "files": [
+        {
+          "filename": "UVR-MDX-NET-Inst_HQ_4.onnx",
+          "size": 59074342,
+          "sha256": "",
+          "subdir": "separator",
+          "url": "https://huggingface.co/lainlives/audio-separator-models/resolve/main/UVR-MDX-NET-Inst_HQ_4.onnx"
+        }
+      ],
+      "tags": [
+        "vocals",
+        "instrumental",
+        "cpu",
+        "fast"
+      ]
+    },
+    {
+      "id": "timbre.colorsplitter",
+      "engine": "timbre",
+      "label": "ColorSplitter timbre-v1 音色编码器",
+      "kind": "file",
+      "license": "MIT (ColorSplitter)",
+      "source": "https://raw.githubusercontent.com/KakaruHayate/ColorSplitter/50c9616dbb82f179af0d432f53d5014857e7f9a5/pretrain/timbre-v1.pt",
+      "note": "17MB，按音色聚类；失败时自动降级 MFCC。",
+      "repo_id": "",
+      "total_size": 17100415,
+      "files": [
+        {
+          "filename": "timbre-v1.pt",
+          "size": 17100415,
+          "sha256": "7e975269badb2325bea04d2cec58218901d791aeb6b8d622f0136d45282a3cac",
+          "subdir": "colorsplitter",
+          "url": "https://raw.githubusercontent.com/KakaruHayate/ColorSplitter/50c9616dbb82f179af0d432f53d5014857e7f9a5/pretrain/timbre-v1.pt"
+        }
+      ],
+      "tags": [
+        "timbre",
+        "clustering",
+        "gpu"
+      ]
+    },
+    {
+      "id": "vad.silero",
+      "engine": "vad",
+      "label": "Silero VAD ONNX",
+      "kind": "file",
+      "license": "MIT (Silero)",
+      "source": "https://raw.githubusercontent.com/snakers4/silero-vad/master/src/silero_vad/data/silero_vad.onnx",
+      "note": "约 1.9MB，人声活动检测；缺失时用能量门限降级。",
+      "repo_id": "",
+      "total_size": 1888608,
+      "files": [
+        {
+          "filename": "silero_vad.onnx",
+          "size": 1888608,
+          "sha256": "",
+          "subdir": "silero",
+          "url": "https://raw.githubusercontent.com/snakers4/silero-vad/master/src/silero_vad/data/silero_vad.onnx"
+        }
+      ],
+      "tags": [
+        "vad",
+        "speech"
+      ]
+    },
+    {
+      "id": "tagging.ast",
+      "engine": "tagging",
+      "label": "AST AudioSet 场景标签",
+      "kind": "hf_snapshot",
+      "license": "BSD-3-Clause (AST)",
+      "source": "https://huggingface.co/MIT/ast-finetuned-audioset-10-10-0.4593",
+      "note": "约 350MB，识别 Music/Speech/Singing/Sound effect 等；可跳过。",
+      "repo_id": "MIT/ast-finetuned-audioset-10-10-0.4593",
+      "total_size": 0,
+      "files": [],
+      "tags": [
+        "tagging",
+        "music",
+        "speech",
+        "gpu"
+      ]
+    }
+  ]
+}

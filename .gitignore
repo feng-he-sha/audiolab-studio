@@ -1,0 +1,42 @@
+# --- Python ---------------------------------------------------------------
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+
+# --- Node / frontend -------------------------------------------------------
+node_modules/
+web/node_modules/
+web/dist/
+.pnpm-store/
+*.tsbuildinfo
+
+# --- Models / runtime / user data -----------------------------------------
+# Model weights are NOT committed. See MODELS.md + scripts/fetch_models.py.
+models/*
+!models/.gitkeep
+workspace/*
+!workspace/.gitkeep
+outputs/
+samples/generated/
+
+# --- Logs / temp / OS ------------------------------------------------------
+*.log
+*.tmp
+*.part
+*.bak
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# --- IDE -------------------------------------------------------------------
+.vscode/
+.idea/
+*.suo
+*.user

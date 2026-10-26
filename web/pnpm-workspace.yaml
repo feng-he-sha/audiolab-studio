@@ -1,0 +1,13 @@
+# pnpm 11 reads project settings from this file (pnpm-workspace.yaml), not .npmrc.
+# The web app is deliberately a single-package "workspace" so that
+# `pnpm --dir web install` resolves these settings without touching the repo root.
+packages: []
+
+# Vite needs esbuild's postinstall to place its binary. Approving only this
+# dependency keeps `pnpm install` non-interactive without allowing arbitrary
+# build scripts from future dependencies.
+onlyBuiltDependencies:
+  - esbuild
+# Avoid hard-link/rename issues on Windows volumes that block the default
+# isolated import method (EPERM on esbuild staging).
+packageImportMethod: copy
