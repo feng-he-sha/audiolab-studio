@@ -26,19 +26,29 @@ DESCRIPTION = "Local audio workbench: vocal/BGM classification, timbre clusterin
 TOPICS = ["audio-processing", "source-separation", "vocal", "timbre", "fastapi", "react", "ffmpeg"]
 
 
-def run(cmd: list[str], *, input_text: str | None = None, check: bool = False) -> subprocess.CompletedProcess[str]:
+def run(
+    cmd: list[str],
+    *,
+    input_text: str | None = None,
+    check: bool = False,
+    timeout: float = 180.0,
+) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env.setdefault("GIT_TERMINAL_PROMPT", "0")
-    proc = subprocess.run(
-        cmd,
-        cwd=str(ROOT),
-        input=input_text,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        capture_output=True,
-        env=env,
-    )
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=str(ROOT),
+            input=input_text,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            capture_output=True,
+            env=env,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        return subprocess.CompletedProcess(cmd, 124, "", f"timeout after {timeout}s: {exc}")
     if check and proc.returncode != 0:
         raise RuntimeError(f"{' '.join(cmd)} failed: {proc.stderr.strip() or proc.stdout.strip()}")
     return proc
@@ -181,17 +191,24 @@ def main() -> int:
         run(["git", "remote", "add", "origin", remote_url], check=True)
 
     print("推送 main...")
-    push = run(["git", "push", "-u", "origin", "main"])
+    push = run(["git", "push", "-u", "origin", "main"], timeout=300)
     if push.returncode != 0:
         print(push.stderr.strip() or push.stdout.strip())
         print("push 失败。请检查 Git Credential Manager 登录/权限，或手动 push。")
         return 1
 
+    head_sha = run(["git", "rev-parse", "HEAD"]).stdout.strip()
     print("推送 tag v0.1.0...")
-    push_tag = run(["git", "push", "origin", "v0.1.0"])
+    push_tag = run(["git", "push", "origin", "v0.1.0"], timeout=90)
     if push_tag.returncode != 0:
-        print(push_tag.stderr.strip() or push_tag.stdout.strip())
-        print("tag push 失败，可稍后手动 push。")
+        # Some Windows/GCM setups hang on annotated tag push even after main
+        # succeeds; create the tag ref through the API instead.
+        print("tag push 未完成，尝试通过 API 创建 tag ref...")
+        try:
+            api.request("POST", f"/repos/{owner}/{args.repo_name}/git/refs", {"ref": "refs/tags/v0.1.0", "sha": head_sha})
+            print("已通过 API 创建 tag v0.1.0")
+        except Exception as exc:
+            print(f"tag 创建失败，可稍后手动 push: {exc}")
 
     try:
         api.request("PATCH", f"/repos/{owner}/{args.repo_name}", {"description": args.description})
