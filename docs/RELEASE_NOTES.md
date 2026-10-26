@@ -15,7 +15,7 @@
 ## 安装
 
 ```powershell
-git clone https://github.com/<your-account>/audiolab-studio.git
+git clone https://github.com/feng-he-sha/audiolab-studio.git
 cd audiolab-studio
 powershell -ExecutionPolicy Bypass -File setup.ps1
 run_workbench.bat

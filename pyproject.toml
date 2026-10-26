@@ -39,6 +39,11 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "httpx>=0.27"]
 
+[project.urls]
+Homepage = "https://github.com/feng-he-sha/audiolab-studio"
+Repository = "https://github.com/feng-he-sha/audiolab-studio"
+Issues = "https://github.com/feng-he-sha/audiolab-studio/issues"
+
 [project.scripts]
 audiolab = "audiolab.cli:main"
 

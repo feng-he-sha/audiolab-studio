@@ -2,6 +2,9 @@
 
 一个本地 GUI 工作台，把「人声/背景音乐分离」「人声/音乐分类」「按音色聚类人声」「简单音频处理」统一到同一个窗口里。不需要逐个打开 Demucs、ColorSplitter、Silero、ffmpeg 等上游项目。
 
+> GitHub：<https://github.com/feng-he-sha/audiolab-studio>
+> Release：<https://github.com/feng-he-sha/audiolab-studio/releases/tag/v0.1.0>
+
 > 适用素材：音乐、录音/访谈/播客、电影/视频片段。
 > 默认全部本地运行，不上传云端；只有下载模型时会访问网络。
 
